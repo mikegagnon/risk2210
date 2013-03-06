@@ -1,7 +1,7 @@
 /**
  *
- * Simulates battles for Risk 2210 AD.
- * @authoe Mike Gagnon
+ * Simulates battles for Risk 2210 A.D.
+ * @author Mike Gagnon
  *
  * Example Usage:
 
