@@ -7,6 +7,20 @@
 
 scala> :load risk.scala
 
+// Roll three six-sided dice (for the attacker) against two 8-sided dice (for the defender)
+scala> roll(6,6,6)(8,8)
+Attacker rolls: ArrayBuffer(6, 4, 3)
+Defender rolls: ArrayBuffer(6, 2)
+Attacker wins 1
+Defender wins 1
+
+res7: (Int, Int) = (1,1)
+
+// Same as a above, but do it many times and report the average.
+// The average number of attacker wins is 0.768 (and 1.232 for the defender)
+scala> rollTrials(6,6,6)(8,8)()
+res9: (Double, Double) = (0.768,1.232)
+
 // Executes one trial of the following scenario:
 // The attacker has 11 units, two of which are commanders and thus roll 8-sided dice.
 //    Denoted: (11)(8,8,6)
@@ -15,11 +29,10 @@ scala> :load risk.scala
 //    Territory 2: (1, List(6)) has one normal unit (rolls a 6-sided die)
 //    Territory 3: (4, List(8, 6)) has three normal units and a commander. (Thus,
 //                  one 8-sided die and one 6-sided die)
+// The output shows that 6 attacker units make it to the final territory
 scala> war(11)(8,8,6)(List((1, List(6)), (1, List(6)), (4, List(8,6))))(LoggingNo)
 res1: (Int, Int) = (6,0)
 
-// The result shows that at the end of this "war" 8 attacker units made it to the
-// last territory.
 // Now you can run that scenario again, but this time with logging turned on.
 // (Just leave off LoggingNo)
 scala> war(11)(8,8,6)(List((1, List(6)), (1, List(6)), (4, List(8,6))))()
@@ -216,7 +229,8 @@ def roll(attacker: Int*)(defender: Int*)(implicit logging: Logging = LoggingYes)
     }
 
   log {
-    println("Result: %s".format(result))
+    println("Attacker wins %d".format(result._1))
+    println("Defender wins %d".format(result._2))
     println()
   }
   result
@@ -240,10 +254,6 @@ def battle(attackMods: Int)(attackDice: Int*)(defendMods: Int)(defendDice: Int*)
     val aDice = attackDice.sortBy{ -1 * _ }.take(numAttackerDice)
     val dDice = defendDice.sortBy{ -1 * _ }.take(numDefenderDice)
     val (attackWins, defendWins) = roll(aDice: _*)(dDice: _*)
-    log {
-      println("Attacker loses %d".format(defendWins))
-      println("Defender loses %d".format(attackWins))
-    }
     battle(attackMods - defendWins)(aDice : _*)(defendMods - attackWins)(dDice :_*)
   }
 }
