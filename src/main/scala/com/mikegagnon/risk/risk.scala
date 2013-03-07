@@ -5,7 +5,8 @@
  *
  * Example Usage:
 
-scala> :load risk.scala
+> sbt console
+scala> import com.mikegagnon.risk.Risk._
 
 // Roll three six-sided dice (for the attacker) against two 8-sided dice (for the defender)
 scala> roll(6,6,6)(8,8)
@@ -184,8 +185,12 @@ Defender loses 0
 The defender wins with 2 unit(s) remaining, in total
 res42: (Int, Int) = (1,2)
 
+
  */
 
+package com.mikegagnon.risk
+
+import com.twitter.algebird.Semigroup
 import scala.annotation.tailrec
 import scala.util.Random
 
@@ -276,7 +281,8 @@ object Risk {
       }
       case (defendMods, defendDice) :: defenseTail => {
         log{ println("\n\nBattle:") }
-        val (attackersRemaining, defendersRemaining) = battle(attackMods)(attackDice : _*)(defendMods)(defendDice: _*)
+        val (attackersRemaining, defendersRemaining) =
+          battle(attackMods)(attackDice : _*)(defendMods)(defendDice: _*)
         if (attackersRemaining == 1) {
           val totalDefenders = defense.tail.map{ _._1 }.sum + defendersRemaining
           log {
@@ -293,21 +299,24 @@ object Risk {
     }
   }
 
-  // attackersRemaining and defendersRemaining are only incremented when they win
-  case class WarSum(numAttackerWins: Double, attackersRemaining: Double, defendersRemaining: Double) {
-    def plus(that: WarSum) = WarSum(
-      numAttackerWins + that.numAttackerWins,
-      attackersRemaining + that.attackersRemaining,
-      defendersRemaining + that.defendersRemaining)
+  object WarSumSemigroup extends Semigroup[WarSum] {
+    def plus(left: WarSum, right: WarSum) = WarSum(
+        left.numAttackerWins + right.numAttackerWins,
+        left.attackersRemaining + right.attackersRemaining,
+        left.defendersRemaining + right.defendersRemaining)
+  }
 
+  // attackersRemaining and defendersRemaining are only incremented when they win
+  case class WarSum(numAttackerWins: Double, attackersRemaining: Double,
+      defendersRemaining: Double) {
     def average(trials: Double) = WarSum(
       numAttackerWins / trials,
       attackersRemaining / numAttackerWins,
       defendersRemaining / (trials - numAttackerWins))
   }
 
-  def warTrials(attackMods: Int)(attackDice: Int*)(defense: List[(Int, List[Int])])(trials: Int = 1000)
-      (implicit logging: Logging = LoggingNo) = {
+  def warTrials(attackMods: Int)(attackDice: Int*)(defense: List[(Int, List[Int])])
+      (trials: Int = 1000)(implicit logging: Logging = LoggingNo) = {
     val sum = (0 until trials)
       .map { _ =>
         val (attackers, defenders) = war(attackMods)(attackDice: _*)(defense)
@@ -319,7 +328,7 @@ object Risk {
         }
       }
       .reduce { (a, b) =>
-        a.plus(b)
+        WarSumSemigroup.plus(a, b)
       }
 
     sum.average(trials)
@@ -335,7 +344,7 @@ object Risk {
         roll(attacker: _*)(defender: _*)
       }
       .reduce { (a, b) =>
-        (a._1 + b._1, a._2 + b._2)
+        Semigroup.plus(a, b)
       }
 
     (sum._1 / trials.toDouble, sum._2 / trials.toDouble)
