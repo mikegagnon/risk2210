@@ -316,8 +316,8 @@ object Risk {
   }
 
   def warTrials(attackMods: Int)(attackDice: Int*)(defense: List[(Int, List[Int])])
-      (trials: Int = 1000)(implicit logging: Logging = LoggingNo) = {
-    val sum = (0 until trials)
+      (trials: Int = 1000)(implicit logging: Logging = LoggingNo) =
+    (0 until trials)
       .map { _ =>
         val (attackers, defenders) = war(attackMods)(attackDice: _*)(defense)
         if (defenders > 0) {
@@ -330,9 +330,7 @@ object Risk {
       .reduce { (a, b) =>
         WarSumSemigroup.plus(a, b)
       }
-
-    sum.average(trials)
-  }
+      .average(trials)
 
   // rolls attacker and defender dice trials times
   // returns (a-wins, d-wins) where x-wins is the average number of kills for x (per trial)
